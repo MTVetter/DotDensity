@@ -29,7 +29,7 @@ require([
     //After the view is loaded create the renderer for the layer
     view.when().then(function(){
         const dotDensityRenderer = new DotDensityRenderer({
-            referenceDotValue: 50,
+            referenceDotValue: 20,
             outline: null,
             referenceScale: 577790,
             legendOptions: {
@@ -85,17 +85,65 @@ require([
         map.add(layerOutline);
         map.add(layer);
 
-        //Add the extra widgets to the map
+        const legendContainer = document.getElementById("legendDiv");
+        const legend = new Legend({
+            view,
+            container: legendContainer,
+            layerInfos: [{layer: layer}]
+        });
+
         view.ui.add([
             new Home({
-                view: view,
+                view: view
             }),
             new Expand({
-                view: view,
-                content: new Legend({view: view, layerInfos:[{layer:layer}]}),
+                view,
+                content: document.getElementById("controlDiv"),
                 group: "top-left",
-                expanded: true
-            })            
+                expanded: true,
+                expandIconClass: "esri-icon-layer-list"
+            })
         ], "top-left");
+
+        legendContainer.addEventListener("mousemove", legendEventListener);
+
+        var mousemoveEnabled = true;
+
+        //enable mouse move on the legend
+        function legendEventListener(event){
+            var selectedText = event.target.alt || event.target.innerText;
+            var legendInfos = legend.activeLayerInfos.getItemAt(0).legendElements[0].infos;
+            var matchFound = legendInfos.filter(function (info){return info.label === selectedText;}).length > 0;
+            if (matchFound){
+                showSelectedField(selectedText);
+            } else {
+                layer.renderer = dotDensityRenderer
+            }
+        }
+
+        //function to highlight the hovered field
+        function showSelectedField(label){
+            var oldRenderer = layer.renderer;
+            var newRenderer = oldRenderer.clone();
+            var attributes = newRenderer.attributes.map(function (attribute){
+                attribute.color.a = attribute.label === label ? 1:0.2;
+                return attribute;
+            });
+            newRenderer.attributes = attributes;
+            layer.renderer = newRenderer;
+        }
+
+        //Add the extra widgets to the map
+        // view.ui.add([
+        //     new Home({
+        //         view: view,
+        //     }),
+        //     new Expand({
+        //         view: view,
+        //         content: new Legend({view: view, layerInfos:[{layer:layer}]}),
+        //         group: "top-left",
+        //         expanded: true
+        //     })            
+        // ], "top-left");
     });
 });
